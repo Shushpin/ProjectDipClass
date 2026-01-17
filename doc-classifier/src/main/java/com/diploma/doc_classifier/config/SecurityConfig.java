@@ -1,6 +1,7 @@
 package com.diploma.doc_classifier.config;
 
 import com.diploma.doc_classifier.repository.UserRepository;
+import com.diploma.doc_classifier.service.CustomOAuth2UserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,25 +17,32 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   CustomOAuth2UserService customOAuth2UserService) throws Exception {
         http
                 .authorizeHttpRequests((requests) -> requests
-                        // Сторінки реєстрації та входу доступні всім
-                        .requestMatchers("/", "/register", "/login", "/css/**", "/js/**").permitAll()
-                        // Будь-які інші запити вимагають авторизації
+                        .requestMatchers("/", "/register", "/login", "/css/**", "/js/**", "/images/**").permitAll()
                         .anyRequest().authenticated()
                 )
+                // Старий добрий вхід через логін/пароль
                 .formLogin((form) -> form
-                        .loginPage("/login") // Вказуємо нашу власну сторінку входу
-                        .defaultSuccessUrl("/dashboard", true) // Куди перенаправити після успішного входу
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/dashboard", true)
                         .permitAll()
+                )
+                // НОВЕ: Вхід через Microsoft
+                .oauth2Login((oauth2) -> oauth2
+                        .loginPage("/login")
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService) // Підключаємо наш авто-реєстратор
+                        )
+                        .defaultSuccessUrl("/dashboard", true)
                 )
                 .logout((logout) -> logout
                         .logoutUrl("/logout")
-                        .logoutSuccessUrl("/login?logout") // Куди перенаправити після виходу
+                        .logoutSuccessUrl("/login?logout")
                         .permitAll()
                 )
-                // Вимикаємо CSRF для спрощення роботи з API завантаження (для навчального проєкту це ок)
                 .csrf(csrf -> csrf.disable());
 
         return http.build();
