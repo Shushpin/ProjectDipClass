@@ -10,4 +10,5 @@ public class DocClassifierApplication {
 		SpringApplication.run(DocClassifierApplication.class, args);
 	}
 
+
 }

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Dashboard - Документи</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .confidence-high { color: green; font-weight: bold; }
+        .confidence-low { color: orange; }
+    </style>
+</head>
+<body class="container mt-5">
+
+<div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+    <h2>📂 Корпоративний архів документів</h2>
+    <form th:action="@{/logout}" method="post">
+        <button class="btn btn-outline-danger btn-sm">Вийти</button>
+    </form>
+</div>
+
+<div class="card mb-5 shadow-sm">
+    <div class="card-body bg-light">
+        <h5 class="card-title">Завантажити новий документ</h5>
+        <p class="text-muted small">Підтримуються PDF, DOCX, TXT. Файл буде автоматично оброблений AI.</p>
+
+        <form id="uploadForm">
+            <div class="input-group">
+                <input type="file" class="form-control" id="fileInput" name="file" required>
+                <button class="btn btn-primary" type="button" onclick="uploadFile()">
+                    🚀 Завантажити та Аналізувати
+                </button>
+            </div>
+            <div id="statusMessage" class="mt-2 fw-bold"></div>
+        </form>
+    </div>
+</div>
+
+<h4>Останні завантажені документи</h4>
+<table class="table table-hover mt-3">
+    <thead class="table-dark">
+    <tr>
+        <th>ID</th>
+        <th>Назва файлу</th>
+        <th>Категорія (AI)</th>
+        <th>Впевненість</th>
+        <th>Статус</th>
+        <th>Дата</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="doc : ${documents}">
+        <td th:text="${doc.id}">1</td>
+        <td th:text="${doc.filename}">report.pdf</td>
+        <td>
+            <span class="badge bg-info text-dark" th:text="${doc.category} ?: 'Не визначено'">Бізнес</span>
+        </td>
+        <td>
+                    <span th:if="${doc.confidence != null}"
+                          th:text="${#numbers.formatPercent(doc.confidence, 1, 1)}"
+                          th:class="${doc.confidence > 0.8} ? 'confidence-high' : 'confidence-low'">
+                        98.5%
+                    </span>
+        </td>
+        <td th:text="${doc.status}">CLASSIFIED</td>
+        <td th:text="${#temporals.format(doc.uploadDate, 'dd-MM-yyyy HH:mm')}">01-01-2025</td>
+    </tr>
+
+    <tr th:if="${documents.isEmpty()}">
+        <td colspan="6" class="text-center text-muted">Документів поки немає. Завантажте перший!</td>
+    </tr>
+    </tbody>
+</table>
+
+<script>
+    async function uploadFile() {
+        const fileInput = document.getElementById('fileInput');
+        const statusMsg = document.getElementById('statusMessage');
+
+        if(fileInput.files.length === 0) {
+            alert("Будь ласка, виберіть файл!");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        statusMsg.innerText = "⏳ Обробка AI... Це може зайняти кілька секунд...";
+        statusMsg.className = "text-primary";
+
+        // Блокуємо кнопку
+        document.querySelector('button').disabled = true;
+
+        try {
+            const response = await fetch('/api/documents/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                statusMsg.innerText = "✅ Успішно! Оновлюємо таблицю...";
+                statusMsg.className = "text-success";
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                statusMsg.innerText = "❌ Помилка завантаження.";
+                statusMsg.className = "text-danger";
+                document.querySelector('button').disabled = false;
+            }
+        } catch (error) {
+            console.error(error);
+            statusMsg.innerText = "❌ Помилка з'єднання.";
+            statusMsg.className = "text-danger";
+            document.querySelector('button').disabled = false;
+        }
+    }
+</script>
+</body>
+</html>

@@ -93,4 +93,8 @@ public class DocumentService {
 
         return documentRepository.save(doc);
     }
+    // Метод для отримання всіх документів із бази
+    public java.util.List<Document> getAllDocuments() {
+        return documentRepository.findAll();
+    }
 }
