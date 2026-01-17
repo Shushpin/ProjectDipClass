@@ -46,10 +46,28 @@ public class WebController {
 
     // Головна сторінка (Dashboard)
     @GetMapping("/dashboard")
-    public String dashboard(Model model) {
-        // Передаємо список документів у HTML, щоб відобразити таблицю
-        model.addAttribute("documents", documentService.getAllDocuments());
-        return "dashboard"; // Поверне файл dashboard.html
+    public String dashboard(Model model, @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.oauth2.core.user.OAuth2User principal) {
+        // Отримуємо всі документи
+        var docs = documentService.getAllDocuments();
+
+        // Передаємо документи
+        model.addAttribute("documents", docs);
+
+        // --- Статистика для карток ---
+        model.addAttribute("totalDocs", docs.size());
+
+        // Рахуємо кількість документів з високою точністю (> 80%)
+        long highConfDocs = docs.stream().filter(d -> d.getConfidence() != null && d.getConfidence() > 0.8).count();
+        model.addAttribute("highConfidenceCount", highConfDocs);
+
+        // Отримуємо ім'я користувача (якщо через Microsoft - беремо name, якщо ні - username)
+        String username = "Користувач";
+        if (principal != null) {
+            username = principal.getAttribute("name"); // Ім'я з Microsoft (напр. Denys Velychko)
+        }
+        model.addAttribute("username", username);
+
+        return "dashboard";
     }
 
     // Перенаправлення з кореня на логін
