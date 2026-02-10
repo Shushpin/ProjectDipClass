@@ -172,15 +172,34 @@
                                 <th>Файл</th>
                                 <th>Категорія</th>
                                 <th>Впевненість</th>
+
+                                <th th:if="${isAdmin}">Користувач</th>
+
                                 <th>Дата</th>
                             </tr>
                             </thead>
                             <tbody>
                             <tr th:each="doc : ${documents}">
                                 <td th:text="${doc.id}">1</td>
-                                <td><i class="fa-solid fa-file-pdf text-danger me-2"></i> <span th:text="${doc.filename}">file.pdf</span></td>
-                                <td><span class="badge bg-secondary" th:text="${doc.category}">Category</span></td>
+
+                                <td>
+                                    <i class="fa-solid fa-file-pdf text-danger me-2"></i>
+                                    <span th:text="${doc.filename}">file.pdf</span>
+                                </td>
+
+                                <td>
+                                    <span class="badge bg-secondary" th:text="${doc.category}">Category</span>
+                                </td>
+
                                 <td th:text="${#numbers.formatPercent(doc.confidence, 1, 1)}">90%</td>
+
+                                <td th:if="${isAdmin}">
+    <span class="badge bg-primary"
+          th:text="${doc.uploader != null ? doc.uploader.username : 'Невідомий'}">
+          user@lnu.edu.ua
+    </span>
+                                </td>
+
                                 <td th:text="${#temporals.format(doc.uploadDate, 'dd.MM.yyyy HH:mm')}">Date</td>
                             </tr>
                             </tbody>

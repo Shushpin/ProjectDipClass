@@ -7,95 +7,56 @@ import java.time.LocalDateTime;
 @Table(name = "documents")
 public class Document {
 
-    // --- 1. СПОЧАТКУ ОГОЛОШУЄМО ПОЛЯ ---
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String filename;
-
     private String filePath;
-
     private String category;
-
     private Double confidence;
-
     private LocalDateTime uploadDate;
-
     private String status;
 
-    // columnDefinition = "TEXT" важливий для довгих текстів у Postgres
     @Column(columnDefinition = "TEXT")
     private String content;
 
+    // --- 👇 ДОДАЙТЕ ЦЮ ЧАСТИНУ 👇 ---
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User uploader;
 
-    // --- 2. ДАЛІ ЙДУТЬ ГЕТТЕРИ І СЕТТЕРИ ---
-
-    public Long getId() {
-        return id;
+    public User getUploader() {
+        return uploader;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setUploader(User uploader) {
+        this.uploader = uploader;
     }
+    // ---------------------------------
 
-    public String getFilename() {
-        return filename;
-    }
+    // --- Інші Геттери та Сеттери ---
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setFilename(String filename) {
-        this.filename = filename;
-    }
+    public String getFilename() { return filename; }
+    public void setFilename(String filename) { this.filename = filename; }
 
-    public String getFilePath() {
-        return filePath;
-    }
+    public String getFilePath() { return filePath; }
+    public void setFilePath(String filePath) { this.filePath = filePath; }
 
-    public void setFilePath(String filePath) {
-        this.filePath = filePath;
-    }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
 
-    public String getCategory() {
-        return category;
-    }
+    public Double getConfidence() { return confidence; }
+    public void setConfidence(Double confidence) { this.confidence = confidence; }
 
-    public void setCategory(String category) {
-        this.category = category;
-    }
+    public LocalDateTime getUploadDate() { return uploadDate; }
+    public void setUploadDate(LocalDateTime uploadDate) { this.uploadDate = uploadDate; }
 
-    public Double getConfidence() {
-        return confidence;
-    }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-    public void setConfidence(Double confidence) {
-        this.confidence = confidence;
-    }
-
-    public LocalDateTime getUploadDate() {
-        return uploadDate;
-    }
-
-    public void setUploadDate(LocalDateTime uploadDate) {
-        this.uploadDate = uploadDate;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    // --- ВИПРАВЛЕНІ МЕТОДИ ДЛЯ CONTENT ---
-
-    public String getContent() {
-        return content;
-    }
-
-    // Ось тут була помилка. Тепер ми присвоюємо значення полю.
-    public void setContent(String content) {
-        this.content = content;
-    }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
 }

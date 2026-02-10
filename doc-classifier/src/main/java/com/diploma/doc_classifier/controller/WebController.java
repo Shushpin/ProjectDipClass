@@ -44,35 +44,59 @@ public class WebController {
         return "redirect:/login"; // Перенаправляємо на вхід
     }
 
-    // Головна сторінка (Dashboard)
     @GetMapping("/dashboard")
-    public String dashboard(Model model, @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.oauth2.core.user.OAuth2User principal) {
-        // Отримуємо всі документи
-        var docs = documentService.getAllDocuments();
+    public String dashboard(Model model,
+                            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.oauth2.core.user.OAuth2User principal,
+                            java.security.Principal basicPrincipal) {
 
-        // Передаємо документи
+        String email;
+        if (principal != null) {
+            email = principal.getAttribute("email");
+            if (email == null) email = principal.getAttribute("preferred_username");
+        } else {
+            email = basicPrincipal.getName();
+        }
+
+        String finalEmail = email; // Фіксуємо змінну для лямбди
+
+        // --- ВИПРАВЛЕННЯ: Самовідновлення користувача ---
+        // Якщо користувача немає в базі (наприклад, після перезапуску Docker), створюємо його.
+        User currentUser = userRepository.findByUsername(finalEmail)
+                .orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setUsername(finalEmail);
+                    newUser.setPassword(""); // Пароль пустий для OAuth
+                    newUser.setRole("USER");
+                    return userRepository.save(newUser);
+                });
+
+        // --- ЛОГІКА АДМІНА ---
+        java.util.List<com.diploma.doc_classifier.model.Document> docs;
+        boolean isAdmin = false;
+
+        if ("ADMIN".equals(currentUser.getRole())) {
+            // Адмін бачить ВСЕ
+            docs = documentService.getAllDocuments();
+            isAdmin = true;
+        } else {
+            // Студент бачить СВОЄ
+            docs = documentService.getDocumentsByUser(currentUser);
+        }
+        // ---------------------
+
         model.addAttribute("documents", docs);
-
-        // --- Статистика для карток ---
         model.addAttribute("totalDocs", docs.size());
+        model.addAttribute("isAdmin", isAdmin); // Передаємо у HTML для відображення колонок
 
-        // Рахуємо кількість документів з високою точністю (> 80%)
+        // Статистику рахуємо по тому списку, який отримали
         long highConfDocs = docs.stream().filter(d -> d.getConfidence() != null && d.getConfidence() > 0.8).count();
         model.addAttribute("highConfidenceCount", highConfDocs);
 
-        // Отримуємо ім'я користувача (якщо через Microsoft - беремо name, якщо ні - username)
-        String username = "Користувач";
-        if (principal != null) {
-            username = principal.getAttribute("name"); // Ім'я з Microsoft (напр. Denys Velychko)
-        }
+        // Відображення імені (якщо є ім'я з Microsoft - беремо його, інакше - email)
+        String username = (principal != null && principal.getAttribute("name") != null)
+                ? principal.getAttribute("name")
+                : currentUser.getUsername();
         model.addAttribute("username", username);
 
         return "dashboard";
-    }
-
-    // Перенаправлення з кореня на логін
-    @GetMapping("/")
-    public String home() {
-        return "redirect:/login";
-    }
-}
+    }}
