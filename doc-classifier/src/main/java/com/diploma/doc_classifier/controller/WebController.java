@@ -11,6 +11,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.security.Principal;
 import java.util.ArrayList;
@@ -153,5 +154,69 @@ public class WebController {
         documentService.deleteDocument(id, currentUser);
 
         return "redirect:/dashboard";
+    }
+    @GetMapping("/documents")
+    public String allDocuments(Model model,
+                               @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.oauth2.core.user.OAuth2User principal,
+                               java.security.Principal basicPrincipal) {
+
+        // Отримуємо поточного користувача (boilerplate code, можна винести в окремий метод, але хай буде тут)
+        String email;
+        if (principal != null) {
+            email = principal.getAttribute("email");
+            if (email == null) email = principal.getAttribute("preferred_username");
+        } else {
+            email = basicPrincipal.getName();
+        }
+
+        User currentUser = userRepository.findByUsername(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Логіка відображення
+        if ("ADMIN".equals(currentUser.getRole())) {
+            // Якщо АДМІН -> показуємо список користувачів
+            List<User> allUsers = userRepository.findAll();
+            model.addAttribute("usersList", allUsers);
+            model.addAttribute("isAdmin", true);
+        } else {
+            // Якщо ЮЗЕР -> показуємо його документи
+            List<com.diploma.doc_classifier.model.Document> docs = documentService.getDocumentsByUser(currentUser);
+            model.addAttribute("documents", docs);
+            model.addAttribute("isAdmin", false);
+        }
+
+        model.addAttribute("username", currentUser.getUsername());
+        return "documents"; // Повертаємо шаблон documents.html
+    }
+
+    // 2. Сторінка документів конкретного користувача (Тільки для Адміна)
+    @GetMapping("/documents/{userId}")
+    public String userDocuments(@PathVariable Long userId,
+                                Model model,
+                                @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.oauth2.core.user.OAuth2User principal,
+                                java.security.Principal basicPrincipal) {
+
+        // Перевірка, чи це Адмін робить запит
+        String email = (principal != null) ? principal.getAttribute("email") : basicPrincipal.getName();
+        if (email == null && principal != null) email = principal.getAttribute("preferred_username");
+
+        User adminUser = userRepository.findByUsername(email).orElseThrow();
+        if (!"ADMIN".equals(adminUser.getRole())) {
+            return "redirect:/dashboard"; // Звичайним юзерам сюди не можна
+        }
+
+        // Знаходимо цільового юзера
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Отримуємо документи ЦЬОГО юзера
+        List<com.diploma.doc_classifier.model.Document> docs = documentService.getDocumentsByUser(targetUser);
+
+        model.addAttribute("documents", docs);
+        model.addAttribute("isAdmin", true);
+        model.addAttribute("viewingUser", targetUser.getUsername()); // Щоб показати заголовок "Файли користувача X"
+        model.addAttribute("username", adminUser.getUsername());
+
+        return "documents";
     }
 }
