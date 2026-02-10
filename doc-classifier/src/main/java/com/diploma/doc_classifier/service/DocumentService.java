@@ -92,4 +92,32 @@ public class DocumentService {
     public List<Document> getDocumentsByUser(User user) {
         return documentRepository.findByUploader(user);
     }
+    // ... існуючий код ...
+
+    public void deleteDocument(Long id, User currentUser) {
+        Document doc = documentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Документ не знайдено"));
+
+        // ПЕРЕВІРКА ПРАВ: Видаляє або Адмін, або Власник
+        boolean isAdmin = "ADMIN".equals(currentUser.getRole());
+        boolean isOwner = doc.getUploader() != null && doc.getUploader().getId().equals(currentUser.getId());
+
+        if (!isAdmin && !isOwner) {
+            throw new RuntimeException("У вас немає прав на видалення цього файлу!");
+        }
+
+        // 1. Видаляємо фізичний файл з диска
+        try {
+            if (doc.getFilePath() != null) {
+                Path path = Paths.get(doc.getFilePath());
+                Files.deleteIfExists(path);
+            }
+        } catch (IOException e) {
+            System.err.println("Не вдалося видалити файл з диска: " + e.getMessage());
+            // Продовжуємо, щоб хоча б з бази видалити
+        }
+
+        // 2. Видаляємо запис з бази даних
+        documentRepository.delete(doc);
+    }
 }
