@@ -42,6 +42,9 @@ services:
       - SPRING_DATASOURCE_PASSWORD=root
       - AI_SERVICE_URL=http://ai-service:5000/classify
       - FILE_UPLOAD_DIR=/app/uploads
+      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_AZURE_CLIENT_ID=your-client-id
+      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_AZURE_CLIENT_SECRET=your-client-secret
+      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_AZURE_TENANT_ID=your-tenant-id
     depends_on:
       - postgres
       - ai-service
