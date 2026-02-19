@@ -10,7 +10,7 @@ services:
       - POSTGRES_PASSWORD=root
       - POSTGRES_DB=doc_classifier
     ports:
-      - "5433:5432" # Прокидаємо на 5433, щоб не конфліктувало з локальним Postgres
+      - "5433:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     restart: always
@@ -32,7 +32,7 @@ services:
   # 3. Наш Бекенд (Java Spring Boot)
   backend:
     platform: linux/amd64
-    image: ghcr.io/shushpin/doc-classifier-backend:latest # <--- БЕРЕМО З ХМАРИ
+    image: ghcr.io/shushpin/doc-classifier-backend:latest
     container_name: doc-classifier-backend
     ports:
       - "8080:8080"
@@ -42,9 +42,18 @@ services:
       - SPRING_DATASOURCE_PASSWORD=root
       - AI_SERVICE_URL=http://ai-service:5000/classify
       - FILE_UPLOAD_DIR=/app/uploads
-      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_AZURE_CLIENT_ID=your-client-id
-      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_AZURE_CLIENT_SECRET=your-client-secret
-      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_AZURE_TENANT_ID=your-tenant-id
+      # MICROSOFT OAUTH2 CONFIGURATION
+      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_MICROSOFT_CLIENT_ID=${MS_CLIENT_ID}
+      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_MICROSOFT_CLIENT_SECRET=${MS_CLIENT_SECRET}
+      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_MICROSOFT_SCOPE=openid,profile,email,User.Read
+      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_MICROSOFT_REDIRECT_URI={baseUrl}/login/oauth2/code/{registrationId}
+      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_MICROSOFT_CLIENT_NAME=LNU / Microsoft
+      - SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_MICROSOFT_AUTHORIZATION_GRANT_TYPE=authorization_code
+
+      - SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_MICROSOFT_AUTHORIZATION_URI=https://login.microsoftonline.com/common/oauth2/v2.0/authorize
+      - SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_MICROSOFT_TOKEN_URI=https://login.microsoftonline.com/common/oauth2/v2.0/token
+      - SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_MICROSOFT_JWK_SET_URI=https://login.microsoftonline.com/common/discovery/v2.0/keys
+      - SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_MICROSOFT_USER_NAME_ATTRIBUTE=email
     depends_on:
       - postgres
       - ai-service
@@ -52,15 +61,17 @@ services:
     networks:
       - doc-network
 
-# Створюємо ізольовану мережу для наших сервісів Watchtower (Автоматичне оновлення контейнерів)
+  # 4. Watchtower (Автоматичне оновлення контейнерів)
   watchtower:
     platform: linux/amd64
     image: containrrr/watchtower
     container_name: watchtower
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock # Даємо доступ до керування Docker'ом
-    command: --interval 30 doc-classifier-backend # Перевіряти бекенд кожні 30 секунд
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 30 doc-classifier-backend
     restart: always
+
+# Створюємо ізольовану мережу для наших сервісів
 networks:
   doc-network:
     driver: bridge
