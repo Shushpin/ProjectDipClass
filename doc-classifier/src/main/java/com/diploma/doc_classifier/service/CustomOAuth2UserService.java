@@ -5,6 +5,7 @@ import com.diploma.doc_classifier.repository.UserRepository;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +29,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         if (email == null) {
             email = oAuth2User.getAttribute("preferred_username");
         }
-
+        // --- ВАЛІДАЦІЯ ДОМЕНУ ---
+        if (email == null || !email.endsWith("@lnu.edu.ua")) {
+            // Якщо пошта не наша, кидаємо помилку, яка зупинить вхід
+            throw new OAuth2AuthenticationException(new OAuth2Error("invalid_domain"), "Доступ дозволено лише для корпоративних акаунтів @lnu.edu.ua");
+        }
         // Перевіряємо, чи є такий користувач в базі
         if (email != null) {
             String finalEmail = email;

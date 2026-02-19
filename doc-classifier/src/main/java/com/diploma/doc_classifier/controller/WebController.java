@@ -39,19 +39,6 @@ public class WebController {
         return "login";
     }
 
-    @GetMapping("/register")
-    public String register() {
-        return "register";
-    }
-
-    @PostMapping("/register")
-    public String processRegister(User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRole("USER");
-        userRepository.save(user);
-        return "redirect:/login";
-    }
-
     @GetMapping("/")
     public String home() {
         return "redirect:/login";
