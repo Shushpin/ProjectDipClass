@@ -28,7 +28,8 @@ public class DocumentService {
     private final Tika tika;
     private final RestTemplate restTemplate;
 
-    private final String PYTHON_SERVICE_URL = "http://127.0.0.1:5000/classify";
+    @Value("${ai.service.url:http://ai-service:5000/classify}")
+    private String pythonServiceUrl;
 
     public DocumentService(DocumentRepository documentRepository,
                            @Value("${file.upload-dir}") String uploadDir) throws IOException {
@@ -65,7 +66,7 @@ public class DocumentService {
                 requestBody.put("text", extractedText);
 
                 ClassificationResponse response = restTemplate.postForObject(
-                        PYTHON_SERVICE_URL, requestBody, ClassificationResponse.class);
+                        pythonServiceUrl, requestBody, ClassificationResponse.class);
 
                 if (response != null) {
                     doc.setCategory(response.category());
