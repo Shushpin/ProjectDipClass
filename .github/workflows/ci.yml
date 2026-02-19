@@ -1,0 +1,57 @@
+name: DevSecOps CI Pipeline
+
+# 1. Коли запускати пайплайн? (Тільки коли ми пушимо код у гілку main/master)
+on:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-scan-push:
+    runs-on: ubuntu-latest
+
+    # Надаємо права пайплайну: читати код і записувати готові образи в GHCR
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # Крок 1: GitHub витягує твій код на свій віртуальний сервер
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Крок 2: Авторизація у сховищі GitHub Container Registry (GHCR)
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Крок 3: Збираємо Docker-образ нашого Java-бекенду
+      # Називаємо його за стандартом: ghcr.io/твій_нікнейм/назва_образу:latest
+      - name: Build Backend Docker Image
+        run: |
+          # Переводимо нікнейм у нижній регістр (вимога Docker)
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_NAME="ghcr.io/$REPO_OWNER/doc-classifier-backend:latest"
+          
+          docker build -t $IMAGE_NAME ./doc-classifier
+          
+          # Зберігаємо назву образу в змінні середовища для наступних кроків
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+
+      # Крок 4: THE SECURITY GATE (Сканування через Trivy)
+      # Якщо знайдеться вразливість HIGH або CRITICAL - пайплайн впаде (exit-code 1) і зупинить деплой!
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}
+          format: 'table'
+          exit-code: '1' # Зупинити пайплайн при знаходженні дірок
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
+
+      # Крок 5: Якщо Trivy дав зелене світло - пушимо (завантажуємо) образ у хмару GitHub
+      - name: Push Image to GHCR
+        run: docker push ${{ env.IMAGE_NAME }}
