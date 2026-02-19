@@ -31,20 +31,16 @@ services:
 
   # 3. Наш Бекенд (Java Spring Boot)
   backend:
-    build:
-      context: ./doc-classifier
-      dockerfile: Dockerfile
+    platform: linux/amd64
+    image: ghcr.io/shushpin/doc-classifier-backend:latest # <--- БЕРЕМО З ХМАРИ
     container_name: doc-classifier-backend
     ports:
       - "8080:8080"
     environment:
-      # Вказуємо Spring Boot, де шукати базу даних (звертаємось по імені контейнера postgres)
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/doc_classifier
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=root
-      # Вказуємо, де шукати AI сервіс
       - AI_SERVICE_URL=http://ai-service:5000/classify
-      # Якщо треба, тут можна передати Microsoft Client ID/Secret
     depends_on:
       - postgres
       - ai-service
@@ -52,7 +48,15 @@ services:
     networks:
       - doc-network
 
-# Створюємо ізольовану мережу для наших сервісів
+# Створюємо ізольовану мережу для наших сервісів Watchtower (Автоматичне оновлення контейнерів)
+  watchtower:
+    platform: linux/amd64
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # Даємо доступ до керування Docker'ом
+    command: --interval 30 doc-classifier-backend # Перевіряти бекенд кожні 30 секунд
+    restart: always
 networks:
   doc-network:
     driver: bridge
