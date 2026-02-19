@@ -5,3 +5,12 @@ __pycache__/
 *.pyc
 *.class
 .DS_Store
+
+*.iml
+out/
+
+
+*.py[cod]
+*$py.class
+.venv/
+env/
