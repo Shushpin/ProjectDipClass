@@ -5,7 +5,7 @@ target/
 !**/src/test/**/target/
 
 # Конфіг файли з чутливими даними
-*.properties
+#*.properties
 *.uploads
 
 ### STS ###
