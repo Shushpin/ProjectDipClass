@@ -21,7 +21,8 @@ public class SecurityConfig {
                                                    CustomOAuth2UserService customOAuth2UserService) throws Exception {
         http
                 .authorizeHttpRequests((requests) -> requests
-                        .requestMatchers("/", "/login", "/css/**", "/js/**", "/images/**", "/actuator/").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/", "/login", "/css/**", "/js/**", "/images/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Старий добрий вхід через логін/пароль
