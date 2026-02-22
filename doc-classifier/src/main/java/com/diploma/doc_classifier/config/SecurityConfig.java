@@ -22,7 +22,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests((requests) -> requests
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/", "/login", "/css/**", "/js/**", "/images/**", "error").permitAll()
+                        .requestMatchers("/", "/login", "/css/**", "/js/**", "/images/**", "/error").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Старий добрий вхід через логін/пароль
